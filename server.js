@@ -23,7 +23,8 @@ app.get('/location', searchToLatLong);
 // Call searchForWeather function to get weather data for the location
 app.get('/weather', searchForWeather);
 
-
+// Listen for /events route. Return a 500 status if there are errors in getting data
+// Call searchForEvents function to get event data for the location
 app.get('/events', searchForEvents);
 
 // Catch and respond to routes other than the ones defined
@@ -32,16 +33,16 @@ app.use('*', (request, response) => {
 })
 
 // Helper Functions
+
+// Making a request to Google's geocode API and getting back a location object with coordinates
 function searchToLatLong(request, response) {
   const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${request.query.data}&key=${process.env.GEOCODE_API_KEY}`;
   superagent.get(url)
     .then(result => {
-      console.log(result);
       const location = new Location(request.query.data, result);
       response.send(location);
     })
     .catch(e => {
-      console.error(e);
       response.status(500).send('Status 500: So sorry I broke trying to get location.');
     })
 }
@@ -55,6 +56,7 @@ function Location(query, result) {
 }
 
 //The searchForWeather function returns an array with the day and the forecast for the day. Refactor to use map method.
+//Calls the Darksky API to get weather information for the location
 function searchForWeather(request, response) {
   const location = request.query.data;
   const url = `https://api.darksky.net/forecast/${process.env.WEATHER_API_KEY}/${location.latitude},${location.longitude}`;
@@ -78,7 +80,7 @@ function Weather(weatherData) {
   this.time = time;
 }
 
-
+//Makes an API call to Eventbrite to get events for the location
 function searchForEvents(request, response) {
   const location = request.query.data;
   const url = `https://www.eventbriteapi.com/v3/events/search/?location.longitude=${location.longitude}&location.latitude=${location.latitude}&expand=venue&token=${process.env.EVENTBRITE_API_KEY}`;
