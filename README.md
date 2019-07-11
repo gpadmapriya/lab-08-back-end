@@ -106,6 +106,20 @@ Finish time: 12:50am
 
 Actual time needed to complete: 1 hour
 
+<!-- ------------- -->
+
+Number and name of feature: Lab 8 Database
+
+Estimate of time needed to complete: 2 hour
+
+Start time: 9:40am
+
+Finish time: 10:20am
+
+Actual time needed to complete: 40min
+
+
+
 ## Credits and Collaborations
 Nicholas Paro - https://github.com/paronicholas
 Padmapriya Ganapathi - https://github.com/gpadmapriya
