@@ -7,9 +7,16 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const superagent = require('superagent');
+const pg = require('pg');
 
 //Global variable
 const PORT = process.env.PORT || 3000;
+
+//Instantiate a new PG client using the database credentials from the .env file
+const client = new pg.Client(process.env.DATABASE_URL);
+//Connect to the client
+client.connect();
+
 
 // Application Setup
 const app = express();
