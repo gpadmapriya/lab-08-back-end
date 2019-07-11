@@ -24,6 +24,7 @@ Provide the user with weather data for the location they enter
 
 - 07-09-2019 - Initial set up, render weather data for location
 - 07-10-2019 - Added eventbrite API and changed all functions to use map method
+- 07-11-2019 - Add postgres database calls
 
 <!-- Repository setup --->
 
@@ -118,7 +119,17 @@ Finish time: 10:20am
 
 Actual time needed to complete: 40min
 
+<!-- ------------- -->
 
+Number and name of feature: Lab 8 Database Feature 2: server
+
+Estimate of time needed to complete: 1 hour
+
+Start time: 10:30am
+
+Finish time: 
+
+Actual time needed to complete: 
 
 ## Credits and Collaborations
 Nicholas Paro - https://github.com/paronicholas

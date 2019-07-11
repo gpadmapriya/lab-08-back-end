@@ -16,6 +16,9 @@ const PORT = process.env.PORT || 3000;
 const client = new pg.Client(process.env.DATABASE_URL);
 //Connect to the client
 client.connect();
+client.on('error', error => {
+  console.error(error);
+})
 
 
 // Application Setup
@@ -43,15 +46,13 @@ app.use('*', (request, response) => {
 
 // Making a request to Google's geocode API and getting back a location object with coordinates
 function searchToLatLong(request, response) {
-  const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${request.query.data}&key=${process.env.GEOCODE_API_KEY}`;
-  superagent.get(url)
-    .then(result => {
-      const location = new Location(request.query.data, result);
-      response.send(location);
-    })
-    .catch(e => {
-      response.status(500).send('Status 500: So sorry I broke trying to get location.');
-    })
+
+
+  const locationName = request.query.data;
+  const query = 'SELECT * FROM locations WHERE search_query=';
+  const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${locationName}&key=${process.env.GEOCODE_API_KEY}`;
+  const origin = 'locations';
+  lookUp(origin, locationName, query, url, response);
 }
 
 // Refactor the searchToLatLong function to replace the object literal with a call to this constructor function:
@@ -65,19 +66,17 @@ function Location(query, result) {
 //The searchForWeather function returns an array with the day and the forecast for the day. Refactor to use map method.
 //Calls the Darksky API to get weather information for the location
 function searchForWeather(request, response) {
+
   const location = request.query.data;
+  const query = 'SELECT * FROM weathers WHERE location_name=';
+
   const url = `https://api.darksky.net/forecast/${process.env.WEATHER_API_KEY}/${location.latitude},${location.longitude}`;
-  superagent.get(url)
-    .then(result => {
-      const weatherArr = result.body.daily.data.map(day => {
-        return new Weather(day);
-      })
-      response.send(weatherArr);
-    })
-    .catch(e => {
-      console.error(e);
-      response.status(500).send('Status 500: I broke trying to get weather.')
-    })
+
+  const origin = 'weathers';
+
+  lookUp(origin, location, query, url, response);
+
+
 }
 
 //Constructor function to create weather objects
@@ -111,5 +110,80 @@ function Event(eventData) {
   this.event_date = new Date(eventData.start.utc).toDateString();
   this.summary = eventData.summary;
 }
+
+function lookUp(origin, locationName, searchQuery, url, response) {
+
+  const formatQuery = searchQuery + '\'' + locationName + '\'';
+
+  client.query(formatQuery).then(sqlResult => {
+    if (sqlResult.rowCount === 0) {
+      if (origin === 'locations') {
+        insertIntoLocation(locationName, response, url);
+      } else if (origin === 'weathers') {
+        insertIntoWeather(locationName, response, url);
+      }
+    } else {
+      if (origin === 'locations') {
+        response.send(sqlResult.rows[0]);
+      } else if (origin === 'weathers') {
+        //console.log('weathers');
+        //Need to create an array of forecast items from weathers table to pass back when record exists in db
+      }
+    }
+  });
+
+}
+
+function insertIntoLocation(locationName, response, url) {
+  superagent.get(url)
+    .then(result => {
+
+      let location = new Location(locationName, result)
+
+      // Save the data to postgres
+      // client.query takes two arguments: a sql command, and an array ov values
+      client.query(
+        `INSERT INTO locations (
+    search_query,
+    formatted_query,
+    latitude,
+    longitude
+  ) VALUES ($1, $2, $3, $4)`,
+        [location.search_query, location.formatted_query, location.latitude, location.longitude]
+      )
+      response.send(location);
+
+    }).catch(e => {
+      console.error(e);
+      response.status(500).send('Status 500: So sorry i broke');
+    })
+}
+
+function insertIntoWeather(locationName, response, url) {
+  superagent.get(url)
+    .then(result => {
+      const weatherArr = result.body.daily.data.map(day => {
+        return new Weather(day);
+      })
+
+      for (let i = 0; i < weatherArr.length; i++) {
+        client.query(
+          `INSERT INTO weathers (
+      forecast,
+      time,
+      location_name
+    ) VALUES ($1, $2, $3)`,
+          [weatherArr[i].forecast, weatherArr[i].time, locationName]
+        )
+      }
+
+      response.send(weatherArr);
+    })
+    .catch(e => {
+      console.error(e);
+      response.status(500).send('Status 500: I broke trying to get weather.')
+    })
+}
+
 // Make sure the server is listening for requests
 app.listen(PORT, () => console.log(`App is listening on ${PORT}`));
